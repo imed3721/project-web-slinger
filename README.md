@@ -145,7 +145,9 @@ Save the screenshots in `docs/images/` and update the filenames below to match t
 
 ### CI Test
 
-![CI Test workflow evidence](docs/images/ci-test.png)
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/4e81b682a5b5abf85a1a32fee17cb94f2814dc71/screenshots/Screenshot%202026-10-19%20204139.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/4e81b682a5b5abf85a1a32fee17cb94f2814dc71/screenshots/Screenshot%202026-10-19%20204153.png)
 
 *Evidence of the CI Test workflow and its completed checks.*
 
