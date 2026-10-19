@@ -1,4 +1,4 @@
-name: Web-Slinger Release and Kubernetes Test
+name: Web-Slinger Secure Release and Kubernetes Verification
 
 on:
   workflow_dispatch:
@@ -20,9 +20,9 @@ concurrency:
 
 jobs:
   release:
-    name: Build, Publish, and Test Deployment
+    name: Scan, Publish, and Verify Kubernetes Deployment
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     permissions:
       contents: read
@@ -38,6 +38,34 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Build Docker image locally
+        id: build
+        env:
+          IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+
+          LOCAL_IMAGE="friendly-neighborhood-watch:scan-${IMAGE_TAG}"
+
+          docker build \
+            --tag "$LOCAL_IMAGE" \
+            --build-arg APP_VERSION="$IMAGE_TAG" \
+            app
+
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "Built image: $LOCAL_IMAGE"
+          echo "Source commit: $GITHUB_SHA"
+
+      - name: Scan image for vulnerabilities with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: friendly-neighborhood-watch:scan-${{ steps.build.outputs.image_tag }}
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -48,39 +76,60 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and publish container image
-        id: build
+      - name: Publish approved image and record digest
+        id: publish
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          IMAGE_TAG: ${{ steps.build.outputs.image_tag }}
         run: |
           set -euo pipefail
 
-          IMAGE="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          LOCAL_IMAGE="friendly-neighborhood-watch:scan-${IMAGE_TAG}"
+          REMOTE_IMAGE="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-          docker build \
-            --tag "$IMAGE" \
-            --build-arg APP_VERSION="$IMAGE_TAG" \
-            app
+          docker tag "$LOCAL_IMAGE" "$REMOTE_IMAGE"
+          docker push "$REMOTE_IMAGE"
 
-          docker push "$IMAGE"
+          DIGEST="$(aws ecr describe-images \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-ids imageTag="$IMAGE_TAG" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)"
 
-          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
-          echo "Published image: $IMAGE"
+          if [[ ! "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "ERROR: Could not verify the published image digest."
+            exit 1
+          fi
+
+          echo "image=$REMOTE_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+          mkdir -p evidence
+          {
+            echo "Commit SHA: $GITHUB_SHA"
+            echo "Image tag: $IMAGE_TAG"
+            echo "Image: $REMOTE_IMAGE"
+            echo "Image digest: $DIGEST"
+            echo "Vulnerability policy: Block fixable HIGH and CRITICAL findings"
+          } > evidence/image-provenance.txt
+
+          echo "Published image: $REMOTE_IMAGE"
+          echo "Verified digest: $DIGEST"
 
       - name: Create kind Kubernetes cluster
         uses: helm/kind-action@v1.12.0
         with:
           cluster_name: web-slinger
 
-      - name: Load published image into kind
+      - name: Load scanned image into kind
         env:
-          IMAGE: ${{ steps.build.outputs.image }}
+          IMAGE_TAG: ${{ steps.build.outputs.image_tag }}
         run: |
           set -euo pipefail
 
-          docker pull "$IMAGE"
-          docker tag "$IMAGE" friendly-neighborhood-watch:local
+          docker tag \
+            "friendly-neighborhood-watch:scan-${IMAGE_TAG}" \
+            friendly-neighborhood-watch:local
 
           kind load docker-image \
             friendly-neighborhood-watch:local \
@@ -151,11 +200,11 @@ jobs:
             --sort-by=.metadata.creationTimestamp \
             > evidence/events.txt 2>&1 || true
 
-      - name: Upload Kubernetes test evidence
+      - name: Upload release and Kubernetes evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: web-slinger-kubernetes-evidence-${{ github.run_id }}
+          name: web-slinger-release-evidence-${{ github.run_id }}
           path: evidence/
           if-no-files-found: ignore
           retention-days: 7
