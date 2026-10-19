@@ -36,7 +36,7 @@ jobs:
           role-to-assume: ${{ vars.ECR_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Log in to ECR
+      - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -44,8 +44,10 @@ jobs:
         id: build
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ github.sha }}-${{ github.run_attempt }}
         run: |
+          set -euo pipefail
+
           docker build \
             --tag "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
             --build-arg APP_VERSION="$IMAGE_TAG" \
@@ -64,6 +66,8 @@ jobs:
         env:
           IMAGE: ${{ steps.build.outputs.image }}
         run: |
+          set -euo pipefail
+
           docker pull "$IMAGE"
           docker tag "$IMAGE" friendly-neighborhood-watch:local
 
@@ -73,6 +77,8 @@ jobs:
 
       - name: Deploy Kubernetes manifests
         run: |
+          set -euo pipefail
+
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
@@ -84,18 +90,25 @@ jobs:
             -n friendly-neighborhood \
             --timeout=120s
 
-      - name: Check desired replicas
+      - name: Verify Deployment replicas
         run: |
+          set -euo pipefail
+
           kubectl get deployment friendly-neighborhood-watch \
             -n friendly-neighborhood
 
-          test "$(kubectl get deployment friendly-neighborhood-watch \
+          DESIRED_REPLICAS="$(kubectl get deployment friendly-neighborhood-watch \
             -n friendly-neighborhood \
-            -o jsonpath='{.spec.replicas}')" = "2"
+            -o jsonpath='{.spec.replicas}')"
 
-          test "$(kubectl get deployment friendly-neighborhood-watch \
+          READY_REPLICAS="$(kubectl get deployment friendly-neighborhood-watch \
             -n friendly-neighborhood \
-            -o jsonpath='{.status.readyReplicas}')" = "2"
+            -o jsonpath='{.status.readyReplicas}')"
+
+          test "$DESIRED_REPLICAS" = "2"
+          test "$READY_REPLICAS" = "2"
+
+          echo "Verified: $READY_REPLICAS of $DESIRED_REPLICAS replicas are ready."
 
       - name: Save deployment evidence
         if: always()
@@ -113,7 +126,11 @@ jobs:
             -n friendly-neighborhood -o yaml \
             > evidence/service.yaml 2>&1 || true
 
-      - name: Upload evidence
+          kubectl get events -n friendly-neighborhood \
+            --sort-by=.metadata.creationTimestamp \
+            > evidence/events.txt 2>&1 || true
+
+      - name: Upload deployment evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
