@@ -25,7 +25,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS using OIDC
+      - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.TF_ROLE_ARN }}
@@ -33,14 +33,16 @@ jobs:
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
       - name: Initialize Terraform
         run: terraform init
 
-      - name: Validate configuration
+      - name: Validate Terraform configuration
         run: terraform validate
 
-      - name: Detect drift
+      - name: Detect infrastructure drift
         id: plan
         shell: bash
         run: |
@@ -50,35 +52,48 @@ jobs:
           set -e
 
           echo "exitcode=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "Terraform plan exit code: $RESULT"
 
-          if [ "$RESULT" -eq 1 ]; then
-            echo "ERROR: Terraform plan failed."
-            exit 1
-          elif [ "$RESULT" -eq 2 ]; then
-            echo "Changes detected: drift or configuration differences exist."
-          elif [ "$RESULT" -eq 0 ]; then
-            echo "No changes detected."
-          else
-            echo "ERROR: Unexpected Terraform exit code: $RESULT"
-            exit 1
-          fi
+          case "$RESULT" in
+            0)
+              echo "No infrastructure changes detected."
+              ;;
+            1)
+              echo "ERROR: Terraform plan failed."
+              exit 1
+              ;;
+            2)
+              echo "Infrastructure changes detected."
+              ;;
+            *)
+              echo "ERROR: Unexpected Terraform exit code: $RESULT"
+              exit 1
+              ;;
+          esac
 
-      - name: Require a difference during manual drift exercise
+      - name: Require changes during manual drift exercise
         if: github.event_name == 'workflow_dispatch'
         env:
           PLAN_EXIT_CODE: ${{ steps.plan.outputs.exitcode }}
         run: |
           if [ "$PLAN_EXIT_CODE" = "0" ]; then
-            echo "ERROR: No changes were found."
-            echo "Introduce a controlled change to a Terraform-managed resource, then rerun."
+            echo "ERROR: No infrastructure changes were detected."
+            echo "Introduce a controlled change to a Terraform-managed resource and rerun."
             exit 1
           fi
+
+          if [ "$PLAN_EXIT_CODE" != "2" ]; then
+            echo "ERROR: Expected Terraform exit code 2, got $PLAN_EXIT_CODE."
+            exit 1
+          fi
+
+          echo "Confirmed: Terraform detected the expected difference."
 
       - name: Restore Terraform-managed configuration
         if: github.event_name == 'workflow_dispatch' && steps.plan.outputs.exitcode == '2'
         run: terraform apply -auto-approve tfplan
 
-      - name: Verify restoration
+      - name: Verify infrastructure is back in the declared state
         if: github.event_name == 'workflow_dispatch' && steps.plan.outputs.exitcode == '2'
         shell: bash
         run: |
@@ -87,13 +102,20 @@ jobs:
           RESULT=$?
           set -e
 
-          if [ "$RESULT" -eq 0 ]; then
-            echo "SUCCESS: Terraform reports no remaining changes."
-          elif [ "$RESULT" -eq 2 ]; then
-            echo "ERROR: Changes remain after restoration."
-            exit 1
-          else
-            echo "ERROR: Verification plan failed with exit code $RESULT."
-            exit 1
-          fi
-
+          case "$RESULT" in
+            0)
+              echo "SUCCESS: No remaining Terraform changes detected."
+              ;;
+            1)
+              echo "ERROR: Terraform verification plan failed."
+              exit 1
+              ;;
+            2)
+              echo "ERROR: Changes remain after restoration."
+              exit 1
+              ;;
+            *)
+              echo "ERROR: Unexpected verification exit code: $RESULT"
+              exit 1
+              ;;
+          esac
