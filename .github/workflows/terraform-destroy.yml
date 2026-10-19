@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm_destroy:
-        description: 'Type DESTROY to authorize a destruction plan'
+        description: "Type DESTROY to generate a destruction plan"
         required: true
         type: string
 
@@ -17,8 +17,10 @@ concurrency:
 
 jobs:
   plan-destroy:
-    name: Create Terraform Destroy Plan
-    if: inputs.confirm_destroy == 'DESTROY'
+    name: Plan Infrastructure Destruction
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.confirm_destroy == 'DESTROY'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -45,7 +47,7 @@ jobs:
         with:
           terraform_wrapper: false
 
-      - name: Initialize Terraform
+      - name: Initialize Terraform backend
         run: terraform init -input=false
 
       - name: Validate Terraform configuration
@@ -54,7 +56,7 @@ jobs:
       - name: Create destruction plan
         run: terraform plan -destroy -input=false -out=tfplan
 
-      - name: Create readable plan for review
+      - name: Generate readable destruction plan
         run: terraform show -no-color tfplan > tfplan.txt
 
       - name: Upload destruction plan for review
@@ -70,11 +72,12 @@ jobs:
   destroy:
     name: Apply Approved Destruction Plan
     needs: plan-destroy
-    if: inputs.confirm_destroy == 'DESTROY'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.confirm_destroy == 'DESTROY'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # Configure required reviewers for this environment in GitHub Settings.
     environment: terraform-destroy
 
     permissions:
@@ -100,14 +103,14 @@ jobs:
         with:
           terraform_wrapper: false
 
-      - name: Initialize Terraform
+      - name: Initialize Terraform backend
         run: terraform init -input=false
 
-      - name: Download destruction plan
+      - name: Download reviewed destruction plan
         uses: actions/download-artifact@v4
         with:
           name: terraform-destroy-plan-${{ github.run_id }}
           path: infra
 
-      - name: Apply the approved destruction plan
-        run: terraform apply -input=false tfplan
+      - name: Apply approved destruction plan
+        run: terraform apply -input=false -auto-approve tfplan
