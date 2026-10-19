@@ -14,10 +14,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: web-slinger-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
-    name: Build, Push, and Test Kubernetes Deployment
+    name: Build, Publish, and Test Deployment
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     permissions:
       contents: read
@@ -26,12 +31,14 @@ jobs:
     env:
       AWS_REGION: eu-west-2
       ECR_REPOSITORY: friendly-neighborhood-watch
+      K8S_NAMESPACE: friendly-neighborhood
+      K8S_DEPLOYMENT: friendly-neighborhood-watch
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Configure AWS using OIDC
+      - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.ECR_ROLE_ARN }}
@@ -41,7 +48,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push image
+      - name: Build and publish container image
         id: build
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -49,21 +56,24 @@ jobs:
         run: |
           set -euo pipefail
 
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
           docker build \
-            --tag "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            --tag "$IMAGE" \
             --build-arg APP_VERSION="$IMAGE_TAG" \
             app
 
-          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$IMAGE"
 
-          echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "Published image: $IMAGE"
 
-      - name: Install kind
+      - name: Create kind Kubernetes cluster
         uses: helm/kind-action@v1.12.0
         with:
           cluster_name: web-slinger
 
-      - name: Load image into kind
+      - name: Load published image into kind
         env:
           IMAGE: ${{ steps.build.outputs.image }}
         run: |
@@ -84,34 +94,39 @@ jobs:
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service.yaml
 
-      - name: Wait for Deployment
-        run: |
-          kubectl rollout status \
-            deployment/friendly-neighborhood-watch \
-            -n friendly-neighborhood \
-            --timeout=120s
-
-      - name: Verify Deployment replicas
+      - name: Wait for Deployment rollout
         run: |
           set -euo pipefail
 
-          kubectl get deployment friendly-neighborhood-watch \
-            -n friendly-neighborhood
+          kubectl rollout status \
+            "deployment/$K8S_DEPLOYMENT" \
+            --namespace "$K8S_NAMESPACE" \
+            --timeout=120s
 
-          DESIRED_REPLICAS="$(kubectl get deployment friendly-neighborhood-watch \
-            -n friendly-neighborhood \
+      - name: Verify desired and ready replicas
+        run: |
+          set -euo pipefail
+
+          kubectl get deployment "$K8S_DEPLOYMENT" \
+            --namespace "$K8S_NAMESPACE"
+
+          DESIRED_REPLICAS="$(kubectl get deployment "$K8S_DEPLOYMENT" \
+            --namespace "$K8S_NAMESPACE" \
             -o jsonpath='{.spec.replicas}')"
 
-          READY_REPLICAS="$(kubectl get deployment friendly-neighborhood-watch \
-            -n friendly-neighborhood \
+          READY_REPLICAS="$(kubectl get deployment "$K8S_DEPLOYMENT" \
+            --namespace "$K8S_NAMESPACE" \
             -o jsonpath='{.status.readyReplicas}')"
 
-          test "$DESIRED_REPLICAS" = "2"
-          test "$READY_REPLICAS" = "2"
+          if [[ "$DESIRED_REPLICAS" != "2" || "$READY_REPLICAS" != "2" ]]; then
+            echo "ERROR: Expected 2 desired and ready replicas."
+            echo "Desired: $DESIRED_REPLICAS; Ready: ${READY_REPLICAS:-0}"
+            exit 1
+          fi
 
-          echo "Verified: $READY_REPLICAS of $DESIRED_REPLICAS replicas are ready."
+          echo "SUCCESS: $READY_REPLICAS of $DESIRED_REPLICAS replicas are ready."
 
-      - name: Test Kubernetes drift and recovery
+      - name: Test Kubernetes drift detection and recovery
         run: bash scripts/drift-test.sh
 
       - name: Save deployment evidence
@@ -119,26 +134,28 @@ jobs:
         run: |
           mkdir -p evidence
 
-          kubectl get pods -n friendly-neighborhood -o wide \
+          kubectl get pods \
+            --namespace "$K8S_NAMESPACE" -o wide \
             > evidence/pods.txt 2>&1 || true
 
-          kubectl get deployment friendly-neighborhood-watch \
-            -n friendly-neighborhood -o yaml \
+          kubectl get deployment "$K8S_DEPLOYMENT" \
+            --namespace "$K8S_NAMESPACE" -o yaml \
             > evidence/deployment.yaml 2>&1 || true
 
-          kubectl get service friendly-neighborhood-watch \
-            -n friendly-neighborhood -o yaml \
+          kubectl get service "$K8S_DEPLOYMENT" \
+            --namespace "$K8S_NAMESPACE" -o yaml \
             > evidence/service.yaml 2>&1 || true
 
-          kubectl get events -n friendly-neighborhood \
+          kubectl get events \
+            --namespace "$K8S_NAMESPACE" \
             --sort-by=.metadata.creationTimestamp \
             > evidence/events.txt 2>&1 || true
 
-      - name: Upload deployment evidence
+      - name: Upload Kubernetes test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: web-slinger-kubernetes-evidence
+          name: web-slinger-kubernetes-evidence-${{ github.run_id }}
           path: evidence/
           if-no-files-found: ignore
           retention-days: 7
