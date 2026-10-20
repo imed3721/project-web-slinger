@@ -183,7 +183,15 @@ Save the screenshots in `docs/images/` and update the filenames below to match t
 
 ### Test Kubernetes drift
 
-![Kubernetes drift test evidence](docs/images/kubernetes-drift.png)
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.34.51.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.35.04.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.34.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.42.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.50.png)
 
 *Evidence of detecting the deliberate replica-count difference and restoring the declared Kubernetes configuration.*
 
