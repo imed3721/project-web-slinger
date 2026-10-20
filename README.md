@@ -1,45 +1,58 @@
-# Web-Slinger: Secure DevOps and Infrastructure Automation
+# Web-Slinger: Secure DevOps & Infrastructure Automation
 
-[![CI Test](https://img.shields.io/badge/CI-GitHub_Actions-blue)](../../actions)
-[![Container](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Infrastructure](https://img.shields.io/badge/Infrastructure-Terraform-7B42BC?logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
-[![Orchestration](https://img.shields.io/badge/Orchestration-Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions&logoColor=white)](../../actions)
+[![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
+[![Kubernetes](https://img.shields.io/badge/Orchestration-Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![AWS](https://img.shields.io/badge/Cloud-AWS-232F3E?logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
 
-Web-Slinger is a DevOps learning project demonstrating automated testing, secure container delivery, infrastructure as code, Kubernetes deployment verification, and infrastructure drift detection using GitHub Actions and AWS.
+**Web-Slinger** is a hands-on DevOps project exploring secure software delivery, infrastructure as code, Kubernetes deployment verification, and infrastructure drift detection.
 
-The project brings application code, infrastructure configuration, Kubernetes manifests, automated workflows, and test evidence together in one repository.
+The project brings application code, automated workflows, container security checks, Kubernetes manifests, Terraform configuration, and execution evidence together in one GitHub repository.
 
 **Repository:** [imed3721/project-web-slinger](https://github.com/imed3721/project-web-slinger)
+
+## Contents
+
+- [Project objectives](#project-objectives)
+- [Technology stack](#technology-stack)
+- [Repository structure](#repository-structure)
+- [CI/CD and infrastructure workflows](#cicd-and-infrastructure-workflows)
+- [Workflow evidence](#workflow-evidence)
+- [Security and operational considerations](#security-and-operational-considerations)
+- [Architecture](#architecture)
+- [Learning outcomes](#learning-outcomes)
+- [Future improvements](#future-improvements)
 
 ## Project objectives
 
 - Automate application checks through continuous integration (CI).
 - Package the Python application as a Docker image.
-- Scan container images for known vulnerabilities before publishing.
+- Scan container images for known vulnerabilities before publication.
 - Authenticate GitHub Actions to AWS using OpenID Connect (OIDC).
 - Publish versioned container images to Amazon Elastic Container Registry (ECR).
-- Deploy Kubernetes manifests to a temporary test cluster and verify application readiness.
-- Introduce and repair deliberate Kubernetes configuration drift.
-- Manage AWS infrastructure using Terraform and an S3 remote state backend.
-- Detect Terraform infrastructure drift and verify recovery.
-- Provide documented evidence of successful workflow executions.
+- Deploy Kubernetes manifests to a temporary test cluster and verify rollout health.
+- Introduce, detect, and repair deliberate Kubernetes configuration drift.
+- Manage AWS infrastructure with Terraform and remote state stored in Amazon S3.
+- Detect infrastructure drift and verify recovery through Terraform plans.
+- Capture workflow logs, screenshots, and artifacts to document implementation and testing.
 
 ## Technology stack
 
-| Technology | Purpose |
+| Technology | Role in the project |
 |---|---|
 | Python | Application runtime |
-| Docker | Container image build and packaging |
-| GitHub Actions | Automated CI/CD workflows |
+| Docker | Container image construction |
+| GitHub Actions | CI/CD automation and workflow orchestration |
 | Trivy | Container vulnerability scanning |
-| AWS IAM and OIDC | Short-lived AWS authentication for workflows |
+| AWS IAM and OIDC | Federated authentication and access control |
 | Amazon ECR | Container image registry |
 | Terraform | Infrastructure as code and drift detection |
 | Amazon S3 | Remote Terraform state storage |
-| Kubernetes | Application deployment and health verification |
+| Kubernetes | Deployment, health checks, and desired-state management |
 | kind | Temporary Kubernetes cluster for automated tests |
-| Bash and kubectl | Automated drift testing and cluster verification |
-| GitHub Actions artifacts | Retention of workflow evidence |
+| Bash and kubectl | Test automation and Kubernetes verification |
+| GitHub Actions artifacts | Retention of selected workflow evidence |
 
 ## Repository structure
 
@@ -59,6 +72,7 @@ project-web-slinger/
 │   └── service.yaml
 ├── scripts/
 │   └── drift-test.sh
+├── screenshots/
 ├── .github/
 │   └── workflows/
 │       ├── CI workflow
@@ -68,206 +82,227 @@ project-web-slinger/
 └── README.md
 ```
 
-*This is a logical overview; adjust the listed workflow names and files to match the repository's actual contents.*
+*The structure above highlights the main project components. Workflow filenames and Terraform files should reflect the actual files present in the repository.*
 
-## Continuous integration and delivery
+## CI/CD and infrastructure workflows
 
-### 1. CI Test
+### 1. Continuous integration — CI Test
 
-The CI workflow checks the application and its configuration automatically when its configured trigger conditions are met.
+The CI workflow automates the configured application and configuration checks when its trigger conditions are met.
 
-**Purpose:** Catch errors early and provide repeatable evidence that automated checks have run.
+**Objective:** Identify errors early and provide repeatable evidence that checks have run.
 
-**Evidence:** See [CI Test evidence](#workflow-evidence).
+**Evidence:** See [CI Test](#ci-test).
 
-### 2. Terraform Infrastructure
+### 2. Infrastructure as code — Terraform
 
-Terraform defines and manages AWS resources as code. The project uses an S3 backend to store Terraform state remotely and supports automated formatting, validation, planning, and controlled application of infrastructure changes.
+Terraform defines the AWS resources managed by the project and provides a repeatable way to plan and apply infrastructure changes.
 
-The intended workflow separates unprivileged code checks from AWS-backed operations:
+The project uses an Amazon S3 backend for remote Terraform state and separates code validation from AWS-backed operations.
 
-- Pull requests: formatting and configuration validation without AWS credentials.
-- Trusted branch: AWS authentication through OIDC and Terraform planning.
-- Protected environment: approval before applying infrastructure changes.
+The intended security model is:
 
-### 3. Secure container release
+- **Pull requests:** Run formatting and configuration checks without AWS credentials.
+- **Trusted branch:** Authenticate through OIDC and generate an infrastructure plan.
+- **Protected environment:** Require review and approval before sensitive changes are applied.
 
-The release workflow is designed to:
+Terraform plans can reveal configuration differences and proposed infrastructure changes. They should be reviewed before application.
 
-1. Build a Docker image on the GitHub Actions runner.
-2. Scan the image with Trivy.
-3. Enforce a vulnerability policy.
+**Evidence:** See [Terraform Infrastructure](#terraform-infrastructure).
+
+### 3. Secure container release — Web-Slinger Release and Kubernetes Test
+
+The release workflow combines container construction, vulnerability scanning, image publication, and Kubernetes verification.
+
+The intended release sequence is:
+
+1. Build the Docker image on the GitHub Actions runner.
+2. Scan the image using Trivy.
+3. Apply the configured vulnerability policy.
 4. Publish an approved image to Amazon ECR.
 5. Record the source commit, image tag, and image digest.
-6. Deploy the scanned image to a temporary Kubernetes test cluster.
-7. Verify rollout readiness and run drift-recovery tests.
+6. Load the scanned image into the temporary Kubernetes test cluster.
+7. Verify deployment readiness and exercise Kubernetes drift recovery.
 
-The configured example policy blocks releases for fixable HIGH and CRITICAL vulnerabilities. Unfixed vulnerabilities and approved exceptions should still be reviewed and documented.
+The example policy blocks releases when fixable HIGH or CRITICAL vulnerabilities are found. Unfixed findings and exceptions still require review and a documented remediation or acceptance decision.
+
+**Evidence:** See [Web-Slinger Release and Kubernetes Test](#web-slinger-release-and-kubernetes-test).
 
 ### 4. Kubernetes deployment verification
 
-Kubernetes manifests describe the application's namespace, Deployment, and Service.
+The Kubernetes manifests define the application's namespace, Deployment, and Service.
 
-The automated test verifies that:
+The release workflow checks that:
 
-- The Deployment rolls out successfully.
-- Two replicas are desired and ready.
-- The application passes its configured readiness and liveness probes.
-- The cluster can recover from a deliberate replica-count change.
+- The Deployment rollout completes successfully.
+- The expected two replicas become ready.
+- Configured readiness and liveness probes are present and used by Kubernetes.
+- The test environment can detect and recover from a deliberate replica-count change.
 
-**Important:** The release workflow uses a temporary kind cluster on the GitHub Actions runner. It verifies deployment behaviour but does not, by itself, establish a persistent production deployment on Amazon EKS.
+**Environment boundary:** The release workflow uses a temporary kind cluster on the GitHub Actions runner. This demonstrates deployment and recovery behaviour; it does not establish a persistent production deployment on Amazon EKS.
 
-### 5. Kubernetes drift detection
+### 5. Kubernetes drift detection and recovery
 
-The drift test deliberately scales the Deployment away from its declared replica count, uses `kubectl diff` to detect the discrepancy, reapplies the Kubernetes manifest, and checks that the desired replica count is restored.
+The Kubernetes drift test deliberately changes the Deployment's replica count from the declared value.
 
-This demonstrates the difference between the desired configuration stored in Git and the live configuration running in Kubernetes.
+The test then uses `kubectl diff` to detect the difference, reapplies the desired manifest, waits for rollout completion, and verifies that the declared replica count has been restored.
 
-### 6. AWS infrastructure drift
+This demonstrates the relationship between the desired configuration in Git and the live configuration in Kubernetes.
 
-The Terraform drift workflow compares the declared infrastructure configuration with the state and infrastructure observed by Terraform.
+**Evidence:** See [Test Kubernetes drift](#test-kubernetes-drift).
 
-For the controlled drift exercise, a managed test resource's tag is changed from its expected value. Terraform planning should identify the difference, and the manual recovery workflow can apply the reviewed plan and verify that no further changes are reported.
+### 6. AWS infrastructure drift detection
 
-Scheduled detection should report drift without automatically applying changes unless that behaviour has been explicitly designed and approved.
+The Terraform drift workflow checks for differences between the declared configuration and the infrastructure represented by Terraform state and provider observations.
+
+The controlled exercise changes a managed test resource's tag from its expected value. Terraform planning should identify the difference. The recovery workflow can apply the reviewed plan and verify that no further changes are reported.
+
+Scheduled detection should report discrepancies rather than automatically changing infrastructure unless automatic remediation has been deliberately designed, reviewed, and authorised.
+
+**Evidence:** See [AWS infrastructure drift](#aws-infrastructure-drift).
 
 ### 7. Controlled Terraform destruction
 
-The separate Terraform destroy workflow is manually triggered. It generates a destruction plan, publishes a short-lived review artifact, and uses a protected GitHub environment before applying the saved plan.
+The separate Terraform destroy workflow is manually triggered. It generates a destruction plan, stores a short-lived plan artifact for review, and uses a protected GitHub environment before applying the saved plan.
 
-This is a destructive operation. Review every planned deletion and confirm that resources and data are safe to remove before approving it.
+Destroy operations are potentially irreversible. Review every proposed deletion, confirm the resources are safe to remove, and ensure important data and Terraform state are protected before approving the operation.
 
 ## Workflow evidence
 
-Screenshots of successful GitHub Actions executions provide visual evidence of the project's automated checks and infrastructure tests.
+The screenshots below document selected GitHub Actions executions for the project's CI, infrastructure, release, and drift-testing workflows.
 
-Save the screenshots in `docs/images/` and update the filenames below to match the files you upload.
+The screenshots are retained in the repository's `screenshots/` directory. The links below point to specific repository revisions so the evidence remains traceable to the version captured.
 
 ### CI Test
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/4e81b682a5b5abf85a1a32fee17cb94f2814dc71/screenshots/Screenshot%202026-10-19%20204139.png)
+![CI Test workflow execution](https://github.com/imed3721/project-web-slinger/blob/4e81b682a5b5abf85a1a32fee17cb94f2814dc71/screenshots/Screenshot%202026-10-19%20204139.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/4e81b682a5b5abf85a1a32fee17cb94f2814dc71/screenshots/Screenshot%202026-10-19%20204153.png)
+![CI Test workflow checks](https://github.com/imed3721/project-web-slinger/blob/4e81b682a5b5abf85a1a32fee17cb94f2814dc71/screenshots/Screenshot%202026-10-19%20204153.png)
 
-*Evidence of the CI Test workflow and its completed checks.*
+*Evidence of the CI workflow execution and the checks visible in the captured run.*
 
 ### Terraform Infrastructure
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212749.png)
+![Terraform infrastructure workflow](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212749.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212808.png)
+![Terraform validation evidence](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212808.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212814.png)
+![Terraform plan evidence](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212814.png)
 
-*Evidence of Terraform formatting, validation, planning, or infrastructure workflow execution, as shown in the screenshot.*
+*Evidence of Terraform workflow execution and the configuration or planning results visible in the screenshots.*
 
 ### Web-Slinger Release and Kubernetes Test
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.09.png)
+![Container release workflow](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.09.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.19.png)
+![Container build and scan evidence](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.19.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.25.png)
+![Container publication evidence](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.25.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.32.png)
+![Kubernetes test workflow](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.32.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.40.png)
+![Kubernetes deployment evidence](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.40.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.45.png)
+![Kubernetes readiness verification](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.45.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.17.29.png)
+![Release test execution](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.17.29.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.19.50.png)
+![Release workflow result](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.19.50.png)
 
-*Evidence of the container release, vulnerability scan, image publication, and Kubernetes verification steps that are visible in the run.*
+*Evidence of the release workflow stages and results visible in the recorded executions.*
 
 ### Test Kubernetes drift
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.34.51.png)
+![Kubernetes drift test setup](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.34.51.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.35.04.png)
+![Kubernetes drift detection](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.35.04.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.34.png)
+![Kubernetes configuration difference](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.34.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.42.png)
+![Kubernetes drift recovery](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.42.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.50.png)
+![Kubernetes restored configuration](https://github.com/imed3721/project-web-slinger/blob/d567c4abaf59600bdb27f872657e3a5d1631ec44/screenshots/Screenshot%202026-10-19%20at%2023.36.50.png)
 
-*Evidence of detecting the deliberate replica-count difference and restoring the declared Kubernetes configuration.*
+*Evidence of the Kubernetes drift test and the results captured during recovery.*
 
 ### AWS infrastructure drift
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.42.14.png)
+![AWS infrastructure drift workflow](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.42.14.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.42.38.png)
+![Terraform drift detection](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.42.38.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.57.44.png)
+![Terraform infrastructure change](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.57.44.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.57.53.png)
+![Terraform drift plan](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.57.53.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.01.png)
+![Terraform drift verification](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.01.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.10.png)
+![Terraform recovery workflow](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.10.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.38.png)
+![Terraform infrastructure verification](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.38.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.52.png)
+![Terraform workflow result](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.52.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.59.26.png)
+![Final infrastructure drift evidence](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.59.26.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.32.png)
+![Final Terraform verification](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.32.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.38.png)
+![Terraform recovery confirmation](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.38.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.49.png)
+![Infrastructure drift test result](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.49.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.58.png)
+![Terraform final state check](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.58.png)
 
-![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.03.05.png)
+![Infrastructure verification result](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.03.05.png)
 
-*Evidence of Terraform identifying the controlled infrastructure change and, where shown, successful recovery.*
+*Evidence of the controlled Terraform drift exercise, planning output, and verification steps captured in the workflow runs.*
 
-## Security considerations
+## Security and operational considerations
 
-- Use GitHub OIDC rather than long-lived AWS access keys.
-- Apply least-privilege IAM permissions to each workflow role.
-- Keep AWS-backed Terraform operations away from untrusted pull requests.
-- Protect the main branch and require review of infrastructure changes.
-- Require environment approval before destructive or sensitive operations.
-- Scan images before publication and review security findings.
-- Use immutable image tags and record image digests for traceability.
-- Protect Terraform state and review changes before applying them.
-- Never commit credentials, secret values, or sensitive state files to Git.
+- **Federated authentication:** Use GitHub OIDC and temporary credentials instead of long-lived AWS access keys.
+- **Least privilege:** Scope IAM permissions to the specific resources and operations required by each workflow.
+- **Trusted execution:** Keep AWS-backed Terraform operations away from untrusted pull-request contexts.
+- **Review and approval:** Protect the main branch and require review before sensitive infrastructure changes.
+- **Destructive operations:** Require explicit approval and careful inspection of Terraform destruction plans.
+- **Container security:** Run vulnerability scans before publishing and document remediation or exception decisions.
+- **Traceability:** Use unique image tags and record image digests and source commits.
+- **State protection:** Restrict access to Terraform state, plans, and workflow artifacts.
+- **Secret management:** Never commit credentials, access tokens, or sensitive state files to the repository.
 
-A successful workflow indicates that its configured checks passed; it is not a guarantee that the application or infrastructure is completely secure.
+A passing workflow confirms only that its configured checks passed. It does not guarantee that the application or infrastructure is completely secure.
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for the Mermaid architecture diagram and an explanation of the application, release, infrastructure, and drift-detection flows.
+The architecture diagram explains the relationship between CI, container scanning and publication, Kubernetes verification, Terraform operations, and evidence collection.
+
+See [docs/architecture.md](docs/architecture.md).
 
 ## Learning outcomes
 
-This project demonstrates practical DevOps skills in:
+Web-Slinger provides practical experience with:
 
-- CI/CD workflow design and debugging.
-- Docker image construction and vulnerability scanning.
-- AWS IAM, OIDC federation, and least-privilege permissions.
-- Container registry publishing and artifact traceability.
-- Kubernetes deployment, probes, replica verification, and drift recovery.
+- CI/CD workflow development and troubleshooting.
+- Docker image building and vulnerability scanning.
+- AWS IAM, OIDC federation, and permission scoping.
+- Amazon ECR image publication and provenance tracking.
+- Kubernetes manifests, probes, replica verification, and drift recovery.
 - Terraform state management, planning, drift detection, and controlled destruction.
 - Automated evidence collection and technical documentation.
 
 ## Future improvements
 
+Potential next steps include:
+
 - Pin third-party GitHub Actions to verified full commit SHAs.
-- Add automated Python unit tests and coverage reporting where appropriate.
-- Retain machine-readable vulnerability scan reports and a software bill of materials (SBOM).
-- Document the vulnerability exception and remediation process.
-- Add stronger policy checks for Terraform plans.
-- Introduce a persistent deployment environment only when required, with separate access controls and approval gates.
+- Add Python unit tests, coverage reporting, and dependency checks.
+- Retain machine-readable Trivy reports and generate a software bill of materials (SBOM).
+- Document vulnerability exceptions, remediation ownership, and review dates.
+- Add policy checks for Terraform plans before approval.
+- Improve evidence organisation with concise captions and direct workflow-run links.
+- Introduce a persistent deployment environment only if needed, with separate permissions and approval controls.
 
 ---
 
 **Maintainer:** [imed3721](https://github.com/imed3721)
 
-**Project:** Web-Slinger — DevOps, Infrastructure as Code, and Kubernetes learning project.
+**Project:** Web-Slinger — Secure DevOps, Infrastructure as Code, and Kubernetes verification.
