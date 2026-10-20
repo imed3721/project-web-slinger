@@ -1,1 +1,121 @@
+name: Web-Slinger AWS Drift Detection
 
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Detect and Verify Terraform Drift
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Validate Terraform configuration
+        run: terraform validate
+
+      - name: Detect infrastructure drift
+        id: plan
+        shell: bash
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -out=tfplan
+          RESULT=$?
+          set -e
+
+          echo "exitcode=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "Terraform plan exit code: $RESULT"
+
+          case "$RESULT" in
+            0)
+              echo "No infrastructure changes detected."
+              ;;
+            1)
+              echo "ERROR: Terraform plan failed."
+              exit 1
+              ;;
+            2)
+              echo "Infrastructure changes detected."
+              ;;
+            *)
+              echo "ERROR: Unexpected Terraform exit code: $RESULT"
+              exit 1
+              ;;
+          esac
+
+      - name: Require changes during manual drift exercise
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          PLAN_EXIT_CODE: ${{ steps.plan.outputs.exitcode }}
+        run: |
+          if [ "$PLAN_EXIT_CODE" = "0" ]; then
+            echo "ERROR: No infrastructure changes were detected."
+            echo "Introduce a controlled change to a Terraform-managed resource and rerun."
+            exit 1
+          fi
+
+          if [ "$PLAN_EXIT_CODE" != "2" ]; then
+            echo "ERROR: Expected Terraform exit code 2, got $PLAN_EXIT_CODE."
+            exit 1
+          fi
+
+          echo "Confirmed: Terraform detected the expected difference."
+
+      - name: Restore Terraform-managed configuration
+        if: github.event_name == 'workflow_dispatch' && steps.plan.outputs.exitcode == '2'
+        run: terraform apply -auto-approve tfplan
+
+      - name: Verify infrastructure is back in the declared state
+        if: github.event_name == 'workflow_dispatch' && steps.plan.outputs.exitcode == '2'
+        shell: bash
+        run: |
+          set +e
+          terraform plan -detailed-exitcode
+          RESULT=$?
+          set -e
+
+          case "$RESULT" in
+            0)
+              echo "SUCCESS: No remaining Terraform changes detected."
+              ;;
+            1)
+              echo "ERROR: Terraform verification plan failed."
+              exit 1
+              ;;
+            2)
+              echo "ERROR: Changes remain after restoration."
+              exit 1
+              ;;
+            *)
+              echo "ERROR: Unexpected verification exit code: $RESULT"
+              exit 1
+              ;;
+          esac

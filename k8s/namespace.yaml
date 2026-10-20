@@ -1,1 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: friendly-neighborhood
+  labels:
+    app.kubernetes.io/part-of: web-slinger
 
