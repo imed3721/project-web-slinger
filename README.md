@@ -197,7 +197,33 @@ Save the screenshots in `docs/images/` and update the filenames below to match t
 
 ### AWS infrastructure drift
 
-![AWS infrastructure drift evidence](docs/images/aws-infrastructure-drift.png)
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.42.14.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.42.38.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.57.44.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.57.53.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.01.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.10.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.38.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.58.52.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-19%20at%2023.59.26.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.32.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.38.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.49.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.02.58.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3f829b74181d5ed5cfe565077872479b9e61212d/screenshots/Screenshot%202026-10-20%20at%2000.03.05.png)
 
 *Evidence of Terraform identifying the controlled infrastructure change and, where shown, successful recovery.*
 
