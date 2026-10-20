@@ -153,7 +153,11 @@ Save the screenshots in `docs/images/` and update the filenames below to match t
 
 ### Terraform Infrastructure
 
-![Terraform Infrastructure workflow evidence](docs/images/terraform-infrastructure.png)
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212749.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212808.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/3eee9af07f45979f011cefe11452f757bcd0f5b1/screenshots/Screenshot%202026-10-19%20212814.png)
 
 *Evidence of Terraform formatting, validation, planning, or infrastructure workflow execution, as shown in the screenshot.*
 
