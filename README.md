@@ -163,7 +163,21 @@ Save the screenshots in `docs/images/` and update the filenames below to match t
 
 ### Web-Slinger Release and Kubernetes Test
 
-![Web-Slinger release workflow evidence](docs/images/web-slinger-release.png)
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.09.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.19.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.25.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.32.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.40.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.14.45.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.17.29.png)
+
+![Image Alt](https://github.com/imed3721/project-web-slinger/blob/03e3f39fa917b8aad51e6a5ffdbab6c13217dc71/screenshots/Screenshot%202026-10-19%20at%2023.19.50.png)
 
 *Evidence of the container release, vulnerability scan, image publication, and Kubernetes verification steps that are visible in the run.*
 
